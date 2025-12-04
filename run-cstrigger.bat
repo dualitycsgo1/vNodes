@@ -11,7 +11,7 @@ echo.
 echo Press Ctrl+C to stop the server
 echo.
 
-vnodes.exe
+"%~dp0vnodes.exe"
 
 echo.
 echo Server stopped. Press any key to exit...
