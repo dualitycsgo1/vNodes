@@ -1,0 +1,43 @@
+{
+  "name": "vnodes",
+  "version": "2.0.0",
+  "description": "Node-based visual workflow editor for vMix integration with CS:GO gamestate events",
+  "main": "server.js",
+  "bin": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "pkg . --out-path dist",
+    "build:win": "pkg . --targets node18-win-x64 --output dist/vnodes.exe",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "vmix",
+    "counter-strike",
+    "gamestate",
+    "timeout",
+    "audio"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "0.27.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "presets/**/*",
+      "gamestate_integration_cstrigger.cfg"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  }
+}

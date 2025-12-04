@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vNodes - Node Editor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>vNodes</h1>
+            <p>Node-Based vMix Integration</p>
+        </div>
+
+        <!-- Node Palette -->
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                📥 Event Nodes
+            </h3>
+            <div class="node-palette">
+                <button class="palette-node event-node" data-node-type="event" data-event-type="timeout_started">
+                    ⏱️ Timeout Started
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="timeout_over">
+                    ⏱️ Timeout Over
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="round_started">
+                    🎮 Round Started
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="round_concluded">
+                    🎮 Round Over
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="freeze_time_started">
+                    ❄️ Freeze Time
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="freeze_time_over">
+                    ❄️ Freeze Over
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="warmup_started">
+                    🔥 Warmup Started
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="warmup_over">
+                    🔥 Warmup Over
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="match_started">
+                    🏁 Match Started
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="gameover">
+                    🏁 Game Over
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="bomb_planted">
+                    💣 Bomb Planted
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="bomb_defused">
+                    💣 Bomb Defused
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="bomb_exploded">
+                    💣 Bomb Exploded
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="player_died">
+                    💀 Player Died
+                </button>
+                <button class="palette-node event-node" data-node-type="event" data-event-type="player_spawned">
+                    👤 Player Spawned
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                🎯 vMix Triggers
+            </h3>
+            <div class="node-palette">
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnTransitionIn">
+                    ➡️ On Transition In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnTransitionOut">
+                    ⬅️ On Transition Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnPreviewIn">
+                    👁️ On Preview In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnPreviewOut">
+                    🚫 On Preview Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay1In">
+                    🔷 Overlay 1 In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay1Out">
+                    🔷 Overlay 1 Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay2In">
+                    🔶 Overlay 2 In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay2Out">
+                    🔶 Overlay 2 Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay3In">
+                    🔸 Overlay 3 In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay3Out">
+                    🔸 Overlay 3 Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay4In">
+                    🔹 Overlay 4 In
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnOverlay4Out">
+                    🔹 Overlay 4 Out
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnRecordingStart">
+                    🔴 Recording Start
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnRecordingStop">
+                    ⏹️ Recording Stop
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnStreamingStart">
+                    📡 Streaming Start
+                </button>
+                <button class="palette-node vmix-trigger-node" data-node-type="vmix-trigger" data-trigger-type="OnStreamingStop">
+                    📡 Streaming Stop
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                📤 vMix Actions
+            </h3>
+            <div class="node-palette">
+                <button class="palette-node action-node" data-node-type="action">
+                    🎬 New vMix Action
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                📦 Organization
+            </h3>
+            <div class="node-palette">
+                <button class="palette-node group-node" id="createGroupBtn">
+                    📦 Create Group
+                </button>
+            </div>
+        </div>
+
+        <!-- Presets -->
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                💾 Presets
+            </h3>
+            <div class="preset-controls">
+                <input type="text" id="presetName" placeholder="Preset name..." />
+                <button id="savePreset" class="btn-primary">Save</button>
+                <button id="clearWorkflow" class="btn-danger">Clear All</button>
+            </div>
+            <div id="presetList" class="preset-list"></div>
+        </div>
+
+        <!-- Status -->
+        <div class="sidebar-section">
+            <h3 class="section-header collapsible">
+                <span class="collapse-icon">▼</span>
+                📊 Status
+            </h3>
+            <div class="status-info">
+                <div class="status-item">
+                    <span>Nodes:</span>
+                    <span id="nodeCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Connections:</span>
+                    <span id="connectionCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span>Groups:</span>
+                    <span id="groupCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span>vMix:</span>
+                    <span id="vmixStatus">⚠️ Unknown</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <div class="main-area">
+        <div class="toolbar">
+            <button id="zoomIn" class="toolbar-btn">🔍+</button>
+            <button id="zoomOut" class="toolbar-btn">🔍-</button>
+            <button id="resetZoom" class="toolbar-btn">⚖️ Reset</button>
+            <button id="centerView" class="toolbar-btn">🎯 Center</button>
+            <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+            <button id="createGroupToolbar" class="toolbar-btn">📦 Create Group</button>
+            <span class="toolbar-info">
+                <span id="zoomLevel">100%</span> | 
+                <span id="panInfo">Pan: 0, 0</span>
+            </span>
+        </div>
+        
+        <div id="canvas-container">
+            <svg id="canvas" width="100%" height="100%">
+                <!-- Grid pattern -->
+                <defs>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <rect width="40" height="40" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                
+                <!-- Connections group -->
+                <g id="connections"></g>
+            </svg>
+            
+            <!-- Nodes container -->
+            <div id="nodes-container"></div>
+        </div>
+    </div>
+
+    <!-- Node Configuration Modal -->
+    <div id="configModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Configure Node</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button id="testNode" class="btn-test">🧪 Test Node</button>
+                <button id="deleteNode" class="btn-danger">🗑️ Delete</button>
+                <button id="saveConfig" class="btn-primary">💾 Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
