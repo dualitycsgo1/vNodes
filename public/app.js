@@ -48,7 +48,7 @@ const VMIX_FUNCTIONS_DB = {
     'AudioOff': { params: ['Input'], description: 'Turn Audio Off' },
     'AudioAuto': { params: ['Input'], description: 'Auto Audio' },
     'SetVolume': { params: ['Value', 'Input'], description: 'Set volume 0-100' },
-    'SetVolumeFade': { params: ['Value', 'Input'], description: 'Set volume gradually (Volume,Milliseconds)' },
+    'SetVolumeFade': { params: ['Value', 'Duration', 'Input'], description: 'Fade volume over time' },
     'SetBalance': { params: ['Value', 'Input'], description: 'Set Balance -1 to 1' },
     'SetGain': { params: ['Value', 'Input'], description: 'Set Gain dB 0-24' },
     'MasterAudio': { params: [], description: 'Toggle Master Audio' },
@@ -1248,7 +1248,7 @@ function renderActionItem(action, index) {
 function getValuePlaceholder(functionName) {
     const placeholders = {
         'SetVolume': '0-100',
-        'SetVolumeFade': '50,1000 (volume,ms)',
+        'SetVolumeFade': '50 (target volume 0-100)',
         'SetText': 'Text content',
         'SetBalance': '-1 to 1',
         'SetZoom': '0-5',
