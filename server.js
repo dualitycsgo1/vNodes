@@ -516,7 +516,11 @@ app.post('/api/nodes/:id/test', async (req, res) => {
     const node = nodeWorkflow.nodes.find(n => n.id === nodeId);
     
     if (!node) {
-        return res.status(404).json({ success: false, error: 'Node not found' });
+        console.log(`❌ Test failed: Node ${nodeId} not found. Available nodes:`, nodeWorkflow.nodes.map(n => n.id));
+        return res.status(404).json({ 
+            success: false, 
+            error: `Node not found. Make sure the workflow is saved. (Looking for: ${nodeId})` 
+        });
     }
     
     try {

@@ -1671,6 +1671,9 @@ async function testCurrentNode() {
     if (!state.selectedNode) return;
 
     try {
+        // Force immediate save before testing to ensure node exists on server
+        await saveWorkflowImmediate();
+        
         const response = await fetch(`/api/nodes/${state.selectedNode.id}/test`, { method: 'POST' });
         const result = await response.json();
         
@@ -1686,6 +1689,24 @@ async function testCurrentNode() {
 
 // ==================== WORKFLOW PERSISTENCE ====================
 
+async function saveWorkflowImmediate() {
+    // Immediate save without debounce (used for testing, presets, etc.)
+    try {
+        await fetch('/api/workflow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                nodes: state.nodes, 
+                connections: state.connections,
+                groups: state.groups 
+            })
+        });
+    } catch (error) {
+        console.error('Failed to save workflow:', error);
+        throw error;
+    }
+}
+
 async function saveWorkflow() {
     if (!autosaveEnabled) return;
     
@@ -1696,19 +1717,7 @@ async function saveWorkflow() {
     
     // Debounce: wait for user to stop making changes
     autosaveTimeout = setTimeout(async () => {
-        try {
-            await fetch('/api/workflow', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    nodes: state.nodes, 
-                    connections: state.connections,
-                    groups: state.groups 
-                })
-            });
-        } catch (error) {
-            console.error('Failed to save workflow:', error);
-        }
+        await saveWorkflowImmediate();
     }, AUTOSAVE_DELAY);
 }
 
