@@ -1285,14 +1285,23 @@ function saveNodeConfig() {
         const actionItems = document.querySelectorAll('.action-item');
         
         actionItems.forEach(item => {
+            const delayInput = item.querySelector('.delay-input');
+            const functionInput = item.querySelector('.function-input');
+            const inputInput = item.querySelector('.input-input');
+            const valueInput = item.querySelector('.value-input');
+            const durationInput = item.querySelector('.duration-input');
+            const mixInput = item.querySelector('.mix-input');
+            const channelInput = item.querySelector('.channel-input');
+            
             actionSequence.push({
-                delay: item.querySelector('.delay-input').value,
-                function: item.querySelector('.function-input').value,
-                input: item.querySelector('.input-input').value,
-                value: item.querySelector('.value-input').value,
-                duration: item.querySelector('.duration-input').value,
-                mix: '',
-                transition: item.querySelector('.transition-input').value,
+                delay: delayInput ? delayInput.value : 0,
+                function: functionInput ? functionInput.value : '',
+                input: inputInput ? inputInput.value : '',
+                value: valueInput ? valueInput.value : '',
+                duration: durationInput ? durationInput.value : '',
+                mix: mixInput ? mixInput.value : '',
+                channel: channelInput ? channelInput.value : '',
+                transition: '',
                 selectedIndex: ''
             });
         });

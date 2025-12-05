@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 });
 
 // Serve static files - handle both development and packaged executable
-const publicPath = path.join(__dirname, 'public');
+const publicPath = path.join(process.pkg ? process.cwd() : __dirname, 'public');
 app.use(express.static(publicPath));
 console.log('📁 Serving static files from:', publicPath);
 
@@ -57,10 +57,11 @@ let nodeWorkflow = {
     connections: []
 };
 
-// Presets directory
-const PRESETS_DIR = path.join(__dirname, 'presets');
+// Presets directory - handle both development and packaged executable
+// In packaged apps, __dirname points to snapshot, so use process.cwd() instead
+const PRESETS_DIR = path.join(process.pkg ? process.cwd() : __dirname, 'presets');
 if (!fs.existsSync(PRESETS_DIR)) {
-    fs.mkdirSync(PRESETS_DIR);
+    fs.mkdirSync(PRESETS_DIR, { recursive: true });
 }
 
 // ==================== VMIX STATE POLLING ====================
