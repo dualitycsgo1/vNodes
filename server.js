@@ -117,18 +117,42 @@ async function pollVmixState() {
 
 // Helper function to get input name by number from vMix XML
 function getInputNameByNumber(xmlData, inputNumber) {
-    // Match input with specific number and extract its key (name)
-    const regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
-    const match = xmlData.match(regex);
+    // Try multiple patterns to match different vMix XML formats
+    
+    // Pattern 1: key attribute before number
+    let regex = new RegExp(`<input[^>]*key="([^"]*)"[^>]*number="${inputNumber}"`, 'i');
+    let match = xmlData.match(regex);
+    
+    // Pattern 2: number attribute before key
+    if (!match) {
+        regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
+        match = xmlData.match(regex);
+    }
+    
+    // Pattern 3: Try title attribute instead of key
+    if (!match) {
+        regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*title="([^"]*)"`, 'i');
+        match = xmlData.match(regex);
+    }
+    
     const name = match ? match[1] : inputNumber;
     
-    // Debug logging (only once per startup to avoid spam)
-    if (!getInputNameByNumber.logged && match) {
-        console.log(`📝 Example input mapping: #${inputNumber} = "${name}"`);
+    // Debug logging to help diagnose
+    if (!getInputNameByNumber.logged) {
+        if (match) {
+            console.log(`📝 Input mapping working: #${inputNumber} = "${name}"`);
+        } else {
+            console.log(`⚠️  Could not extract name for input #${inputNumber}`);
+            // Log a sample of the XML to see the format
+            const sampleMatch = xmlData.match(new RegExp(`<input[^>]*number="${inputNumber}"[^>]*>`, 'i'));
+            if (sampleMatch) {
+                console.log(`   Sample XML: ${sampleMatch[0].substring(0, 200)}...`);
+            }
+        }
         getInputNameByNumber.logged = true;
     }
     
-    return name; // Fall back to number if name not found
+    return name;
 }
 
 // Process vMix trigger nodes
