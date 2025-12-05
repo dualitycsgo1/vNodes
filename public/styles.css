@@ -321,6 +321,34 @@ body {
     margin-left: auto;
     font-size: 12px;
     color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.autosave-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.autosave-toggle:hover {
+    background: var(--bg-tertiary);
+}
+
+.autosave-toggle input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.autosave-toggle span {
+    font-size: 12px;
+    color: var(--text-secondary);
 }
 
 .keyboard-shortcuts {

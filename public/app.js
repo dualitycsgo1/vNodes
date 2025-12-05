@@ -28,6 +28,11 @@ let history = [];
 let historyIndex = -1;
 const MAX_HISTORY = 50;
 
+// Autosave settings
+let autosaveEnabled = true;
+let autosaveTimeout = null;
+const AUTOSAVE_DELAY = 2000; // 2 seconds after last change
+
 // ==================== VMIX FUNCTIONS DATABASE ====================
 
 // vMix Functions organized by category
@@ -37,7 +42,7 @@ const VMIX_CATEGORIES = {
     'Input': ['FullScreen', 'NextPicture', 'PlayPause', 'PreviewInput', 'PreviewInputNext', 'PreviewInputPrevious', 'SelectIndex', 'SetPosition'],
     'Overlay': ['OverlayInput1', 'OverlayInput1In', 'OverlayInput1Off', 'OverlayInput1Out', 'OverlayInput1Zoom', 'OverlayInput2', 'OverlayInput2In', 'OverlayInput2Off', 'OverlayInput2Out', 'OverlayInput2Zoom', 'OverlayInput3', 'OverlayInput3In', 'OverlayInput3Off', 'OverlayInput3Out', 'OverlayInput3Zoom', 'OverlayInput4', 'OverlayInput4In', 'OverlayInput4Off', 'OverlayInput4Out', 'OverlayInput4Zoom'],
     'Output': ['StartStopExternal2', 'StartStopMultiCorder', 'StartStopRecording', 'StartStopStreaming'],
-    'Title': ['SetText', 'SetImage', 'TitleBeginAnimation', 'TitlePreset'],
+    'Title': ['SetText', 'SetImage', 'TitleBeginAnimation', 'TitlePreset', 'StartCountdown', 'StopCountdown', 'PauseCountdown', 'SetCountdown', 'SetCountdownDuration', 'ChangeCountdownTime', 'AddCountdownSeconds'],
     'Replay': ['ReplayMarkIn', 'ReplayMarkOut', 'ReplayPlay', 'ReplayPlayAll', 'ReplayPlayAllEvents', 'ReplayPlayEvent', 'ReplayPlayLast', 'ReplayRecord', 'ReplaySetSpeed', 'ReplayStartRecording', 'ReplayStartStopRecording', 'ReplayStopRecording', 'ReplayToggleLastEventMode'],
     'Mix': ['ActiveInput', 'LastPreset', 'SetMixPreview', 'SetOutput', 'SetPanX', 'SetPanY', 'SetZoom'],
     'Other': ['CallManager', 'DataSourceAutoNextOff', 'DataSourceAutoNextOn', 'DataSourceNextRow', 'DataSourcePreviousRow', 'DataSourceSelectRow', 'KeyPress', 'SendKeys', 'LayerOff', 'LayerOn', 'MultiViewOverlay', 'ScriptStart', 'ScriptStartDynamic', 'ScriptStop', 'ScriptStopAll', 'SetAlpha', 'SetColor', 'SetCountdown', 'SetDynamicValue1', 'SetDynamicValue2', 'SetDynamicValue3', 'SetDynamicValue4', 'SetFader', 'SetGain', 'SetHeadphonesVolume', 'SetLayer', 'SetMasterVolume', 'SetVolumeFade', 'Sleep', 'StreamingSetKey', 'VideoCallAudioSource', 'VideoCallVideoSource', 'VideoDelayStartStop']
@@ -133,10 +138,13 @@ const VMIX_FUNCTIONS_DB = {
     'SetText': { params: ['Value', 'Input'], description: 'Set Text (use SelectedIndex or SelectedName)' },
     'SetImage': { params: ['Value', 'Input'], description: 'Set Image (use SelectedIndex or SelectedName)' },
     'SetColor': { params: ['Value', 'Input'], description: 'Set Color HTML #xxxxxxxx' },
-    'StartCountdown': { params: ['Input'], description: 'Start Countdown' },
-    'StopCountdown': { params: ['Input'], description: 'Stop Countdown' },
-    'PauseCountdown': { params: ['Input'], description: 'Pause Countdown' },
-    'SetCountdown': { params: ['Value', 'Input'], description: 'Set Countdown (hh:mm:ss)' },
+    'StartCountdown': { params: ['Input', 'SelectedIndex'], description: 'Start / Stop / Pause Countdown' },
+    'StopCountdown': { params: ['Input', 'SelectedIndex'], description: 'Stop Countdown' },
+    'PauseCountdown': { params: ['Input', 'SelectedIndex'], description: 'Pause Countdown' },
+    'SetCountdown': { params: ['Value', 'Input', 'SelectedIndex'], description: 'Set Countdown (hh:mm:ss)' },
+    'SetCountdownDuration': { params: ['Value', 'Input', 'SelectedIndex'], description: 'Set Countdown Duration (hh:mm:ss)' },
+    'ChangeCountdownTime': { params: ['Value', 'Input', 'SelectedIndex'], description: 'Change Countdown Time (hh:mm:ss)' },
+    'AddCountdownSeconds': { params: ['Value', 'Input', 'SelectedIndex'], description: 'Add / Subtract seconds on Countdown' },
     
     // Replay
     'ReplayMarkIn': { params: [], description: 'Mark In Point' },
@@ -255,6 +263,18 @@ function initEventListeners() {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyDown);
+
+    // Autosave toggle
+    const autosaveToggle = document.getElementById('autosaveToggle');
+    autosaveEnabled = localStorage.getItem('autosaveEnabled') !== 'false';
+    autosaveToggle.checked = autosaveEnabled;
+    autosaveToggle.addEventListener('change', (e) => {
+        autosaveEnabled = e.target.checked;
+        localStorage.setItem('autosaveEnabled', autosaveEnabled);
+        if (autosaveEnabled) {
+            saveWorkflow(); // Save immediately when enabled
+        }
+    });
 }
 
 // ==================== NODE CREATION ====================
@@ -1285,6 +1305,7 @@ function renderActionItem(action, index) {
     const hasMix = functionInfo.params.includes('Mix');
     const hasChannel = functionInfo.params.includes('Channel');
     const hasDuration = functionInfo.params.includes('Duration');
+    const hasSelectedIndex = functionInfo.params.includes('SelectedIndex');
     
     const actionEl = document.createElement('div');
     actionEl.id = actionId;
@@ -1333,9 +1354,20 @@ function renderActionItem(action, index) {
             ` : ''}
             
             ${hasValue ? `
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0; grid-column: ${isCountdownFunction(action.function) ? '1 / -1' : 'auto'};">
                 <label style="font-size: 11px; display: block; margin-bottom: 4px;">📝 Value</label>
+                ${isCountdownFunction(action.function) ? `
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" class="value-input" value="${action.value || ''}" placeholder="${getValuePlaceholder(action.function)}" style="flex: 1; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 13px;">
+                    <select class="countdown-format" style="width: 120px; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 13px;">
+                        <option value="HH:MM:SS" ${(action.countdownFormat || 'HH:MM:SS') === 'HH:MM:SS' ? 'selected' : ''}>HH:MM:SS</option>
+                        <option value="MM:SS" ${action.countdownFormat === 'MM:SS' ? 'selected' : ''}>MM:SS</option>
+                        <option value="SS" ${action.countdownFormat === 'SS' ? 'selected' : ''}>SS</option>
+                    </select>
+                </div>
+                ` : `
                 <input type="text" class="value-input" value="${action.value || ''}" placeholder="${getValuePlaceholder(action.function)}" style="width: 100%; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 13px;">
+                `}
             </div>
             ` : ''}
             
@@ -1359,6 +1391,13 @@ function renderActionItem(action, index) {
                 <input type="number" class="duration-input" value="${action.duration || ''}" min="0" step="100" placeholder="1000" style="width: 100%; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 13px;">
             </div>
             ` : ''}
+            
+            ${hasSelectedIndex ? `
+            <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 11px; display: block; margin-bottom: 4px;">🎯 Title Layer</label>
+                <input type="text" class="selectedindex-input" value="${action.selectedIndex || ''}" placeholder="e.g., 1 or Countdown.Text" style="width: 100%; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 13px;">
+            </div>
+            ` : ''}
         </div>
     `;
     
@@ -1370,6 +1409,21 @@ function renderActionItem(action, index) {
         config.actionSequence.splice(index, 1);
         refreshActionSequenceUI();
     });
+    
+    // Countdown format change listener
+    const formatSelect = actionEl.querySelector('.countdown-format');
+    if (formatSelect) {
+        formatSelect.addEventListener('change', (e) => {
+            const valueInput = actionEl.querySelector('.value-input');
+            const format = e.target.value;
+            const placeholders = {
+                'HH:MM:SS': '01:30:00',
+                'MM:SS': '90:00',
+                'SS': '5400'
+            };
+            valueInput.placeholder = placeholders[format] || '01:30:00';
+        });
+    }
     
     actionEl.querySelector('.move-up').addEventListener('click', () => {
         if (index > 0) {
@@ -1408,9 +1462,16 @@ function getValuePlaceholder(functionName) {
         'SetAlpha': '0-255',
         'SetPosition': 'milliseconds',
         'SetFader': '0-255',
-        'SetCountdown': '00:10:00'
+        'SetCountdown': '00:10:00 or 10:00 or 600',
+        'SetCountdownDuration': '00:10:00 or 10:00 or 600',
+        'ChangeCountdownTime': '00:10:00 or 10:00 or 600',
+        'AddCountdownSeconds': '30 or -30'
     };
     return placeholders[functionName] || 'Value';
+}
+
+function isCountdownFunction(functionName) {
+    return ['SetCountdown', 'SetCountdownDuration', 'ChangeCountdownTime'].includes(functionName);
 }
 
 function refreshActionSequenceUI() {
@@ -1443,6 +1504,8 @@ function saveNodeConfig() {
             const durationInput = item.querySelector('.duration-input');
             const mixInput = item.querySelector('.mix-input');
             const channelInput = item.querySelector('.channel-input');
+            const countdownFormatInput = item.querySelector('.countdown-format');
+            const selectedIndexInput = item.querySelector('.selectedindex-input');
             
             actionSequence.push({
                 delay: delayInput ? delayInput.value : 0,
@@ -1452,8 +1515,9 @@ function saveNodeConfig() {
                 duration: durationInput ? durationInput.value : '',
                 mix: mixInput ? mixInput.value : '',
                 channel: channelInput ? channelInput.value : '',
-                transition: '',
-                selectedIndex: ''
+                countdownFormat: countdownFormatInput ? countdownFormatInput.value : 'HH:MM:SS',
+                selectedIndex: selectedIndexInput ? selectedIndexInput.value : '',
+                transition: ''
             });
         });
 
@@ -1623,19 +1687,29 @@ async function testCurrentNode() {
 // ==================== WORKFLOW PERSISTENCE ====================
 
 async function saveWorkflow() {
-    try {
-        await fetch('/api/workflow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                nodes: state.nodes, 
-                connections: state.connections,
-                groups: state.groups 
-            })
-        });
-    } catch (error) {
-        console.error('Failed to save workflow:', error);
+    if (!autosaveEnabled) return;
+    
+    // Clear existing timeout
+    if (autosaveTimeout) {
+        clearTimeout(autosaveTimeout);
     }
+    
+    // Debounce: wait for user to stop making changes
+    autosaveTimeout = setTimeout(async () => {
+        try {
+            await fetch('/api/workflow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    nodes: state.nodes, 
+                    connections: state.connections,
+                    groups: state.groups 
+                })
+            });
+        } catch (error) {
+            console.error('Failed to save workflow:', error);
+        }
+    }, AUTOSAVE_DELAY);
 }
 
 async function loadWorkflow() {
