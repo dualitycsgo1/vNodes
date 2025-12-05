@@ -109,7 +109,9 @@ function processVmixTriggers() {
         const triggered = checkVmixTrigger(triggerNode);
         
         if (triggered) {
-            console.log(`🎯 vMix Trigger: ${triggerNode.triggerType}`);
+            const config = triggerNode.config || {};
+            const targetInfo = config.targetInput ? ` for input: ${config.targetInput}` : '';
+            console.log(`🎯 vMix Trigger: ${triggerNode.triggerType}${targetInfo}`);
             
             // Find all connections from this trigger node
             const connections = nodeWorkflow.connections.filter(conn => conn.fromNodeId === triggerNode.id);
@@ -135,10 +137,18 @@ function checkVmixTrigger(triggerNode) {
         case 'OnTransitionIn':
             // Check if specific input became active
             if (targetInput) {
-                return vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
+                const matched = vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
+                if (matched) {
+                    console.log(`  📍 Match: ${previousVmixState.activeInput || 'none'} → ${vmixState.activeInput}`);
+                }
+                return matched;
             }
             // Or any transition
-            return vmixState.activeInput !== previousVmixState.activeInput && vmixState.activeInput !== null;
+            if (vmixState.activeInput !== previousVmixState.activeInput && vmixState.activeInput !== null) {
+                console.log(`  📍 Any transition: ${previousVmixState.activeInput || 'none'} → ${vmixState.activeInput}`);
+                return true;
+            }
+            return false;
         
         case 'OnTransitionOut':
             // Check if specific input left active
