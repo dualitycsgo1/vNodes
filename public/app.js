@@ -1813,11 +1813,14 @@ async function loadPreset(filename) {
         
         state.nodes = workflow.nodes || [];
         state.connections = workflow.connections || [];
+        state.groups = workflow.groups || [];
         
         nodeIdCounter = Math.max(...state.nodes.map(n => parseInt(n.id.split('_')[1]) || 0), 0) + 1;
         connectionIdCounter = Math.max(...state.connections.map(c => parseInt(c.id.split('_')[1]) || 0), 0) + 1;
+        groupIdCounter = Math.max(...state.groups.map(g => parseInt(g.id.split('_')[1]) || 0), 0) + 1;
         
-        saveWorkflow();
+        // Force immediate save when loading preset
+        await saveWorkflowImmediate();
         renderAllNodes();
         renderConnections();
         updateStatusDisplay();

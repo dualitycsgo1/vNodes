@@ -98,11 +98,25 @@ async function pollVmixState() {
         vmixState.streaming = xmlData.includes('<streaming>True</streaming>');
         vmixState.external = xmlData.includes('<external>True</external>');
         
+        // Debug: Log state changes
+        if (vmixState.activeInput !== previousVmixState.activeInput) {
+            console.log(`📺 Active input changed: ${previousVmixState.activeInput || 'none'} → ${vmixState.activeInput || 'none'}`);
+        }
+        if (vmixState.previewInput !== previousVmixState.previewInput) {
+            console.log(`👁️  Preview input changed: ${previousVmixState.previewInput || 'none'} → ${vmixState.previewInput || 'none'}`);
+        }
+        
         // Process vMix triggers
         processVmixTriggers();
         
+        // Clear error flag on successful connection
+        if (pollVmixState.errorLogged) {
+            console.log('✅ vMix connection restored - triggers are now active');
+            pollVmixState.errorLogged = false;
+        }
+        
     } catch (error) {
-        // Only log error once on startup, then silently fail
+        // Only log error once, but keep trying to connect
         if (!pollVmixState.errorLogged) {
             console.log('⚠️  vMix not available - triggers will be inactive until vMix is detected');
             pollVmixState.errorLogged = true;
@@ -137,6 +151,21 @@ function getInputNameByNumber(xmlData, inputNumber) {
 function processVmixTriggers() {
     const vmixTriggerNodes = nodeWorkflow.nodes.filter(node => node.type === 'vmix-trigger');
     
+    // Debug: Log how many triggers we found
+    if (!processVmixTriggers.logged) {
+        console.log(`🔧 Found ${vmixTriggerNodes.length} vMix trigger nodes in workflow (total nodes: ${nodeWorkflow.nodes.length})`);
+        if (vmixTriggerNodes.length > 0) {
+            vmixTriggerNodes.forEach(t => {
+                console.log(`   - ${t.triggerType}: target="${(t.config || {}).targetInput || 'any'}"`);
+            });
+        }
+        processVmixTriggers.logged = true;
+    }
+    
+    if (vmixTriggerNodes.length === 0) {
+        return; // No triggers to process
+    }
+    
     vmixTriggerNodes.forEach(triggerNode => {
         const triggered = checkVmixTrigger(triggerNode);
         
@@ -163,11 +192,21 @@ function checkVmixTrigger(triggerNode) {
     const triggerType = triggerNode.triggerType;
     const targetInput = config.targetInput;
     
+    // Debug logging
+    if (vmixState.activeInput !== previousVmixState.activeInput || vmixState.previewInput !== previousVmixState.previewInput) {
+        console.log(`  🔍 Checking trigger: ${triggerType}, target: "${targetInput || 'any'}"`);
+        console.log(`     Current active: "${vmixState.activeInput}", Previous: "${previousVmixState.activeInput}"`);
+    }
+    
     switch(triggerType) {
         case 'OnTransitionIn':
             // Check if specific input became active
             if (targetInput) {
-                return vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
+                const matched = vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
+                if (vmixState.activeInput !== previousVmixState.activeInput) {
+                    console.log(`     OnTransitionIn check: active="${vmixState.activeInput}", target="${targetInput}", matched=${matched}`);
+                }
+                return matched;
             }
             // Or any transition
             return vmixState.activeInput !== previousVmixState.activeInput && vmixState.activeInput !== null;
@@ -493,6 +532,17 @@ app.get('/api/workflow', (req, res) => {
 // Update workflow
 app.post('/api/workflow', (req, res) => {
     nodeWorkflow = req.body;
+    
+    // Log workflow update
+    const vmixTriggers = nodeWorkflow.nodes.filter(n => n.type === 'vmix-trigger');
+    const actions = nodeWorkflow.nodes.filter(n => n.type === 'action');
+    console.log(`💾 Workflow updated: ${nodeWorkflow.nodes.length} nodes (${vmixTriggers.length} triggers, ${actions.length} actions, ${nodeWorkflow.connections.length} connections)`);
+    
+    // Reset the logging flag so we can see the triggers again
+    if (processVmixTriggers.logged) {
+        processVmixTriggers.logged = false;
+    }
+    
     res.json({ success: true });
 });
 

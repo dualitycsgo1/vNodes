@@ -23,8 +23,19 @@ vNodes is a visual node editor that allows you to create complex automation work
 ### 🎨 Visual Node Editor
 - **Drag & Drop Interface**: Intuitive canvas with pan, zoom, and snap-to-grid
 - **Node Organization**: Group nodes into collapsible containers for better workflow management
+- **Multi-Selection**: Hold Ctrl and click to select multiple nodes
+- **Quick Grouping**: Select nodes and press Ctrl+G to auto-create fitting groups
+- **Node Duplication**: Hold Alt while dragging to duplicate nodes instantly
 - **Visual Connections**: Connect events to actions with smooth bezier curves
 - **Real-time Preview**: See your workflow structure at a glance
+
+### ⌨️ Keyboard Shortcuts
+- **Alt + Drag**: Duplicate node at cursor position
+- **Ctrl + Click**: Multi-select nodes
+- **Ctrl + G**: Group selected nodes
+- **Delete/Backspace**: Remove selected node, connection, or group
+- **Ctrl + Z**: Undo last action
+- **Ctrl + Shift + Z** or **Ctrl + Y**: Redo
 
 ### 🎮 CS:GO Gamestate Integration
 - **15+ Event Triggers**: Timeout, round start/end, bomb events, player deaths, and more
@@ -35,17 +46,22 @@ vNodes is a visual node editor that allows you to create complex automation work
 - **100+ vMix Functions**: Organized into 9 categories (Audio, Transition, Input, Overlay, Output, Title, Replay, Mix, Other)
 - **Smart Parameter UI**: Dynamic form fields adapt based on selected function
 - **Multiple Actions**: Chain multiple vMix commands with custom delays
+- **Parallel Execution**: Actions with the same delay execute simultaneously (perfect for crossfades)
 - **vMix Triggers**: React to vMix state changes (overlay in/out, transition events, recording/streaming)
+- **Countdown Controls**: Full support for countdown timers with flexible time formats (HH:MM:SS, MM:SS, or SS)
 
-### 💾 Preset System
-- **Save Workflows**: Store your node configurations as presets
+### 💾 Workflow Management
+- **Auto-save**: Automatic workflow saving with 2-second debounce (toggle in top-right corner)
+- **Preset System**: Save and load complete workflow configurations
+- **Undo/Redo**: Full history tracking for up to 50 actions
+- **Instant Testing**: Test nodes immediately with forced save before execution
 - **Quick Loading**: Switch between different setups instantly
 - **JSON Format**: Easy to share and version control
 
 ### 🚀 Standalone Distribution
 - **Single Executable**: No Node.js installation required
 - **Portable**: Copy the dist folder to any Windows machine
-- **Auto Port Selection**: Automatically finds available port if default is busy
+- **Auto Port Selection**: Automatically finds available port if default is busy (8082-8092)
 
 ## Installation
 
