@@ -398,17 +398,45 @@ async function executeVmixAction(actionNode, eventName) {
         if (actionSequence.length > 0) {
             console.log(`🎬 ${eventName} - Executing ${actionSequence.length} action(s):`);
             
-            // Execute each action in sequence
-            for (const action of actionSequence) {
-                // Apply delay before this action
+            // Group actions by delay time for parallel execution
+            const actionGroups = [];
+            let currentDelay = 0;
+            let currentGroup = [];
+            
+            actionSequence.forEach(action => {
                 const delay = parseInt(action.delay) || 0;
-                if (delay > 0) {
-                    console.log(`  ⏱️  Wait ${delay}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                
+                if (delay !== currentDelay) {
+                    // New delay group - save previous group if it has actions
+                    if (currentGroup.length > 0) {
+                        actionGroups.push({ delay: currentDelay, actions: currentGroup });
+                    }
+                    currentDelay = delay;
+                    currentGroup = [action];
+                } else {
+                    // Same delay - add to current group
+                    currentGroup.push(action);
+                }
+            });
+            
+            // Don't forget the last group
+            if (currentGroup.length > 0) {
+                actionGroups.push({ delay: currentDelay, actions: currentGroup });
+            }
+            
+            // Execute action groups
+            for (const group of actionGroups) {
+                // Apply delay before this group
+                if (group.delay > 0) {
+                    console.log(`  ⏱️  Wait ${group.delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, group.delay));
                 }
                 
-                // Execute the action
-                await executeSingleVmixCommand(action, eventName);
+                // Execute all actions in this group in parallel
+                if (group.actions.length > 1) {
+                    console.log(`  🎯 Executing ${group.actions.length} actions simultaneously...`);
+                }
+                await Promise.all(group.actions.map(action => executeSingleVmixCommand(action, eventName)));
             }
             
             console.log(`✅ ${eventName} - Sequence completed`);
