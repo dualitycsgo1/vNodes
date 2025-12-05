@@ -117,21 +117,21 @@ async function pollVmixState() {
 
 // Helper function to get input name by number from vMix XML
 function getInputNameByNumber(xmlData, inputNumber) {
-    // Try multiple patterns to match different vMix XML formats
+    // vMix uses 'title' for the display name, not 'key' (which is a GUID)
     
-    // Pattern 1: key attribute before number
-    let regex = new RegExp(`<input[^>]*key="([^"]*)"[^>]*number="${inputNumber}"`, 'i');
+    // Pattern 1: title attribute (this is the human-readable name)
+    let regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*title="([^"]*)"`, 'i');
     let match = xmlData.match(regex);
     
-    // Pattern 2: number attribute before key
+    // Pattern 2: Try title before number
     if (!match) {
-        regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
+        regex = new RegExp(`<input[^>]*title="([^"]*)"[^>]*number="${inputNumber}"`, 'i');
         match = xmlData.match(regex);
     }
     
-    // Pattern 3: Try title attribute instead of key
+    // Pattern 3: Fallback to key if title doesn't exist
     if (!match) {
-        regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*title="([^"]*)"`, 'i');
+        regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
         match = xmlData.match(regex);
     }
     
@@ -140,7 +140,7 @@ function getInputNameByNumber(xmlData, inputNumber) {
     // Debug logging to help diagnose
     if (!getInputNameByNumber.logged) {
         if (match) {
-            console.log(`📝 Input mapping working: #${inputNumber} = "${name}"`);
+            console.log(`📝 Input mapping: #${inputNumber} = "${name}"`);
         } else {
             console.log(`⚠️  Could not extract name for input #${inputNumber}`);
             // Log a sample of the XML to see the format
