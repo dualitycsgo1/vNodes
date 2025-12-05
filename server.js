@@ -98,11 +98,20 @@ async function pollVmixState() {
         vmixState.streaming = xmlData.includes('<streaming>True</streaming>');
         vmixState.external = xmlData.includes('<external>True</external>');
         
+        // Debug: Log state changes
+        if (vmixState.activeInput !== previousVmixState.activeInput) {
+            console.log(`🔄 Active input changed: ${previousVmixState.activeInput} → ${vmixState.activeInput}`);
+        }
+        
         // Process vMix triggers
         processVmixTriggers();
         
     } catch (error) {
-        // Silently fail if vMix is not available
+        // Only log error once on startup, then silently fail
+        if (!pollVmixState.errorLogged) {
+            console.log('⚠️  vMix not available - triggers will be inactive until vMix is detected');
+            pollVmixState.errorLogged = true;
+        }
     }
 }
 
@@ -111,7 +120,15 @@ function getInputNameByNumber(xmlData, inputNumber) {
     // Match input with specific number and extract its key (name)
     const regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
     const match = xmlData.match(regex);
-    return match ? match[1] : inputNumber; // Fall back to number if name not found
+    const name = match ? match[1] : inputNumber;
+    
+    // Debug logging (only once per startup to avoid spam)
+    if (!getInputNameByNumber.logged && match) {
+        console.log(`📝 Example input mapping: #${inputNumber} = "${name}"`);
+        getInputNameByNumber.logged = true;
+    }
+    
+    return name; // Fall back to number if name not found
 }
 
 // Process vMix trigger nodes
