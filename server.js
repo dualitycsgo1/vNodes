@@ -98,11 +98,6 @@ async function pollVmixState() {
         vmixState.streaming = xmlData.includes('<streaming>True</streaming>');
         vmixState.external = xmlData.includes('<external>True</external>');
         
-        // Debug: Log state changes
-        if (vmixState.activeInput !== previousVmixState.activeInput) {
-            console.log(`🔄 Active input changed: ${previousVmixState.activeInput} → ${vmixState.activeInput}`);
-        }
-        
         // Process vMix triggers
         processVmixTriggers();
         
@@ -135,24 +130,7 @@ function getInputNameByNumber(xmlData, inputNumber) {
         match = xmlData.match(regex);
     }
     
-    const name = match ? match[1] : inputNumber;
-    
-    // Debug logging to help diagnose
-    if (!getInputNameByNumber.logged) {
-        if (match) {
-            console.log(`📝 Input mapping: #${inputNumber} = "${name}"`);
-        } else {
-            console.log(`⚠️  Could not extract name for input #${inputNumber}`);
-            // Log a sample of the XML to see the format
-            const sampleMatch = xmlData.match(new RegExp(`<input[^>]*number="${inputNumber}"[^>]*>`, 'i'));
-            if (sampleMatch) {
-                console.log(`   Sample XML: ${sampleMatch[0].substring(0, 200)}...`);
-            }
-        }
-        getInputNameByNumber.logged = true;
-    }
-    
-    return name;
+    return match ? match[1] : inputNumber;
 }
 
 // Process vMix trigger nodes
@@ -163,9 +141,7 @@ function processVmixTriggers() {
         const triggered = checkVmixTrigger(triggerNode);
         
         if (triggered) {
-            const config = triggerNode.config || {};
-            const targetInfo = config.targetInput ? ` for input: ${config.targetInput}` : '';
-            console.log(`🎯 vMix Trigger: ${triggerNode.triggerType}${targetInfo}`);
+            console.log(`🎯 vMix Trigger: ${triggerNode.triggerType}`);
             
             // Find all connections from this trigger node
             const connections = nodeWorkflow.connections.filter(conn => conn.fromNodeId === triggerNode.id);
@@ -191,18 +167,10 @@ function checkVmixTrigger(triggerNode) {
         case 'OnTransitionIn':
             // Check if specific input became active
             if (targetInput) {
-                const matched = vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
-                if (matched) {
-                    console.log(`  📍 Match: ${previousVmixState.activeInput || 'none'} → ${vmixState.activeInput}`);
-                }
-                return matched;
+                return vmixState.activeInput === targetInput && previousVmixState.activeInput !== targetInput;
             }
             // Or any transition
-            if (vmixState.activeInput !== previousVmixState.activeInput && vmixState.activeInput !== null) {
-                console.log(`  📍 Any transition: ${previousVmixState.activeInput || 'none'} → ${vmixState.activeInput}`);
-                return true;
-            }
-            return false;
+            return vmixState.activeInput !== previousVmixState.activeInput && vmixState.activeInput !== null;
         
         case 'OnTransitionOut':
             // Check if specific input left active
@@ -415,7 +383,6 @@ async function executeSingleVmixCommand(action, eventName) {
         url += `&SelectedIndex=${encodeURIComponent(action.selectedIndex.toString().trim())}`;
     }
     
-    console.log(`  🌐 API Call: ${url}`);
     await axios.get(url);
     console.log(`  ↳ ${action.function} ${action.input ? `→ ${action.input}` : ''}`);
 }

@@ -5,6 +5,7 @@ let state = {
     connections: [],
     groups: [],
     selectedNode: null,
+    selectedNodes: [],
     selectedConnection: null,
     selectedGroup: null,
     isDraggingNode: false,
@@ -21,6 +22,11 @@ let state = {
 let nodeIdCounter = 1;
 let connectionIdCounter = 1;
 let groupIdCounter = 1;
+
+// Undo/Redo history
+let history = [];
+let historyIndex = -1;
+const MAX_HISTORY = 50;
 
 // ==================== VMIX FUNCTIONS DATABASE ====================
 
@@ -246,11 +252,16 @@ function initEventListeners() {
     document.getElementById('configModal').addEventListener('click', (e) => {
         if (e.target.id === 'configModal') closeModal();
     });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', handleKeyDown);
 }
 
 // ==================== NODE CREATION ====================
 
 function createNodeFromPalette(paletteBtn) {
+    saveStateToHistory();
+    
     const nodeType = paletteBtn.dataset.nodeType;
     const eventType = paletteBtn.dataset.eventType;
     const triggerType = paletteBtn.dataset.triggerType;
@@ -290,6 +301,8 @@ function createNodeFromPalette(paletteBtn) {
 // ==================== GROUP CREATION ====================
 
 function createGroup() {
+    saveStateToHistory();
+    
     const group = {
         id: `group_${groupIdCounter++}`,
         name: `Group ${groupIdCounter - 1}`,
@@ -304,6 +317,53 @@ function createGroup() {
     };
 
     state.groups.push(group);
+    renderGroup(group);
+    saveWorkflow();
+    updateStatusDisplay();
+}
+
+function groupSelectedNodes() {
+    if (state.selectedNodes.length < 2) {
+        alert('Please select at least 2 nodes to group (Ctrl+Click)');
+        return;
+    }
+    
+    saveStateToHistory();
+    
+    // Calculate bounding box of selected nodes
+    const padding = 30;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    state.selectedNodes.forEach(node => {
+        const nodeWidth = 200; // Approximate node width
+        const nodeHeight = 120; // Approximate node height
+        
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + nodeWidth);
+        maxY = Math.max(maxY, node.position.y + nodeHeight);
+    });
+    
+    const group = {
+        id: `group_${groupIdCounter++}`,
+        name: `Group ${groupIdCounter - 1}`,
+        position: {
+            x: minX - padding,
+            y: minY - padding
+        },
+        width: (maxX - minX) + (padding * 2),
+        height: (maxY - minY) + (padding * 2),
+        collapsed: false,
+        children: state.selectedNodes.map(n => n.id)
+    };
+
+    state.groups.push(group);
+    
+    // Clear selection
+    state.selectedNodes = [];
+    state.selectedNode = null;
+    document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+    
     renderGroup(group);
     saveWorkflow();
     updateStatusDisplay();
@@ -477,6 +537,42 @@ function renderAllNodes() {
     state.nodes.forEach(renderNode);
 }
 
+// ==================== NODE DUPLICATION ====================
+
+function duplicateNode(node) {
+    saveStateToHistory();
+    
+    const duplicatedNode = {
+        id: `node_${nodeIdCounter++}`,
+        type: node.type,
+        position: {
+            x: node.position.x + 20,
+            y: node.position.y + 20
+        }
+    };
+
+    if (node.type === 'event') {
+        duplicatedNode.eventType = node.eventType;
+        duplicatedNode.label = node.label;
+        duplicatedNode.icon = node.icon;
+    } else if (node.type === 'vmix-trigger') {
+        duplicatedNode.triggerType = node.triggerType;
+        duplicatedNode.config = JSON.parse(JSON.stringify(node.config || {}));
+        duplicatedNode.label = node.label;
+        duplicatedNode.icon = node.icon;
+    } else if (node.type === 'action') {
+        duplicatedNode.config = JSON.parse(JSON.stringify(node.config || { actionSequence: [] }));
+        duplicatedNode.label = node.label;
+        duplicatedNode.icon = node.icon;
+    }
+
+    state.nodes.push(duplicatedNode);
+    saveWorkflow();
+    updateStatusDisplay();
+    
+    return duplicatedNode;
+}
+
 // ==================== NODE DRAGGING ====================
 
 let draggedNode = null;
@@ -486,23 +582,76 @@ function handleNodeMouseDown(e, node) {
     if (e.target.closest('.node-port')) return;
     
     e.stopPropagation();
-    draggedNode = node;
-    state.selectedNode = node;
     
-    const nodeEl = document.getElementById(`node-${node.id}`);
-    const rect = nodeEl.getBoundingClientRect();
-    const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+    // Ctrl+Click for multi-selection (but not Alt+Ctrl)
+    if (e.ctrlKey && !e.altKey) {
+        const nodeEl = document.getElementById(`node-${node.id}`);
+        
+        // Toggle selection
+        if (state.selectedNodes.includes(node)) {
+            state.selectedNodes = state.selectedNodes.filter(n => n !== node);
+            nodeEl.classList.remove('selected');
+        } else {
+            state.selectedNodes.push(node);
+            nodeEl.classList.add('selected');
+        }
+        
+        // Update single selection to last selected
+        state.selectedNode = state.selectedNodes.length > 0 ? state.selectedNodes[state.selectedNodes.length - 1] : null;
+        return;
+    }
     
-    // Calculate offset accounting for zoom and pan
-    const mouseX = (e.clientX - containerRect.left - state.canvasOffset.x) / state.zoom;
-    const mouseY = (e.clientY - containerRect.top - state.canvasOffset.y) / state.zoom;
-    
-    dragOffset.x = mouseX - node.position.x;
-    dragOffset.y = mouseY - node.position.y;
+    // Alt+Drag to duplicate
+    if (e.altKey) {
+        const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        
+        // Calculate mouse position
+        const mouseX = (e.clientX - containerRect.left - state.canvasOffset.x) / state.zoom;
+        const mouseY = (e.clientY - containerRect.top - state.canvasOffset.y) / state.zoom;
+        
+        const duplicatedNode = duplicateNode(node);
+        
+        // Position duplicated node at mouse cursor
+        duplicatedNode.position.x = mouseX;
+        duplicatedNode.position.y = mouseY;
+        
+        draggedNode = duplicatedNode;
+        state.selectedNode = duplicatedNode;
+        state.selectedNodes = [duplicatedNode];
+        
+        // Render the new node immediately
+        renderNode(duplicatedNode);
+        
+        const nodeEl = document.getElementById(`node-${duplicatedNode.id}`);
+        
+        // Center the node on the cursor
+        dragOffset.x = 0;
+        dragOffset.y = 0;
+        
+        // Bring to front and select
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+        nodeEl.classList.add('selected');
+        nodeEl.style.zIndex = '1000';
+    } else {
+        draggedNode = node;
+        state.selectedNode = node;
+        state.selectedNodes = [node];
+        
+        const nodeEl = document.getElementById(`node-${node.id}`);
+        const rect = nodeEl.getBoundingClientRect();
+        const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+        
+        // Calculate offset accounting for zoom and pan
+        const mouseX = (e.clientX - containerRect.left - state.canvasOffset.x) / state.zoom;
+        const mouseY = (e.clientY - containerRect.top - state.canvasOffset.y) / state.zoom;
+        
+        dragOffset.x = mouseX - node.position.x;
+        dragOffset.y = mouseY - node.position.y;
 
-    // Add selected class
-    document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
-    nodeEl.classList.add('selected');
+        // Add selected class
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+        nodeEl.classList.add('selected');
+    }
 
     document.addEventListener('mousemove', handleNodeDrag);
     document.addEventListener('mouseup', handleNodeDragEnd);
@@ -859,6 +1008,8 @@ function completeConnection(toNode) {
     );
 
     if (!exists) {
+        saveStateToHistory();
+        
         const connection = {
             id: `conn_${connectionIdCounter++}`,
             fromNodeId: state.connectingFrom.id,
@@ -1333,6 +1484,7 @@ function deleteCurrentNode() {
     if (!state.selectedNode) return;
 
     if (confirm(`Delete node "${state.selectedNode.label}"?`)) {
+        saveStateToHistory();
         state.nodes = state.nodes.filter(n => n.id !== state.selectedNode.id);
         state.connections = state.connections.filter(c => 
             c.fromNodeId !== state.selectedNode.id && c.toNodeId !== state.selectedNode.id
@@ -1344,6 +1496,111 @@ function deleteCurrentNode() {
         updateStatusDisplay();
         closeModal();
     }
+}
+
+function deleteSelectedNode() {
+    if (!state.selectedNode) return;
+    
+    saveStateToHistory();
+    state.nodes = state.nodes.filter(n => n.id !== state.selectedNode.id);
+    state.connections = state.connections.filter(c => 
+        c.fromNodeId !== state.selectedNode.id && c.toNodeId !== state.selectedNode.id
+    );
+    
+    state.selectedNode = null;
+    saveWorkflow();
+    renderAllNodes();
+    renderConnections();
+    updateStatusDisplay();
+}
+
+function handleKeyDown(e) {
+    // Ignore if typing in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+    }
+
+    // Delete key
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (state.selectedNode) {
+            deleteSelectedNode();
+        } else if (state.selectedConnection) {
+            saveStateToHistory();
+            deleteConnection(state.selectedConnection);
+        } else if (state.selectedGroup) {
+            saveStateToHistory();
+            deleteGroup(state.selectedGroup);
+        }
+    }
+
+    // Ctrl+Z (Undo)
+    if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+    }
+
+    // Ctrl+Shift+Z or Ctrl+Y (Redo)
+    if ((e.ctrlKey && e.shiftKey && e.key === 'Z') || (e.ctrlKey && e.key === 'y')) {
+        e.preventDefault();
+        redo();
+    }
+
+    // Ctrl+G (Group selected nodes)
+    if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        groupSelectedNodes();
+    }
+}
+
+function saveStateToHistory() {
+    const currentState = {
+        nodes: JSON.parse(JSON.stringify(state.nodes)),
+        connections: JSON.parse(JSON.stringify(state.connections)),
+        groups: JSON.parse(JSON.stringify(state.groups))
+    };
+    
+    // Remove any redo history if we're not at the end
+    history = history.slice(0, historyIndex + 1);
+    
+    // Add current state
+    history.push(currentState);
+    
+    // Limit history size
+    if (history.length > MAX_HISTORY) {
+        history.shift();
+    } else {
+        historyIndex++;
+    }
+}
+
+function undo() {
+    if (historyIndex <= 0) return;
+    
+    historyIndex--;
+    restoreState(history[historyIndex]);
+}
+
+function redo() {
+    if (historyIndex >= history.length - 1) return;
+    
+    historyIndex++;
+    restoreState(history[historyIndex]);
+}
+
+function restoreState(savedState) {
+    state.nodes = JSON.parse(JSON.stringify(savedState.nodes));
+    state.connections = JSON.parse(JSON.stringify(savedState.connections));
+    state.groups = JSON.parse(JSON.stringify(savedState.groups));
+    
+    state.selectedNode = null;
+    state.selectedConnection = null;
+    state.selectedGroup = null;
+    
+    saveWorkflow();
+    renderAllNodes();
+    renderConnections();
+    updateStatusDisplay();
 }
 
 async function testCurrentNode() {
