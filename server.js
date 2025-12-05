@@ -72,20 +72,25 @@ async function pollVmixState() {
         const response = await axios.get(`${VMIX_API_URL}`);
         const xmlData = response.data;
         
-        // Parse XML to extract state (basic parsing)
+        // Parse XML to extract state
         previousVmixState = JSON.parse(JSON.stringify(vmixState));
         
-        // Extract active and preview inputs
+        // Extract active and preview input NUMBERS
         const activeMatch = xmlData.match(/<active>(\d+)<\/active>/);
         const previewMatch = xmlData.match(/<preview>(\d+)<\/preview>/);
         
-        vmixState.activeInput = activeMatch ? activeMatch[1] : null;
-        vmixState.previewInput = previewMatch ? previewMatch[1] : null;
+        const activeNumber = activeMatch ? activeMatch[1] : null;
+        const previewNumber = previewMatch ? previewMatch[1] : null;
         
-        // Extract overlay states
+        // Convert input numbers to input NAMES by parsing the XML
+        vmixState.activeInput = activeNumber ? getInputNameByNumber(xmlData, activeNumber) : null;
+        vmixState.previewInput = previewNumber ? getInputNameByNumber(xmlData, previewNumber) : null;
+        
+        // Extract overlay states (convert numbers to names)
         for (let i = 1; i <= 4; i++) {
             const overlayMatch = xmlData.match(new RegExp(`<overlay number="${i}"[^>]*>([^<]*)<\/overlay>`));
-            vmixState.overlays[i] = overlayMatch ? overlayMatch[1] : null;
+            const overlayNumber = overlayMatch ? overlayMatch[1] : null;
+            vmixState.overlays[i] = overlayNumber ? getInputNameByNumber(xmlData, overlayNumber) : null;
         }
         
         // Extract recording/streaming states
@@ -99,6 +104,14 @@ async function pollVmixState() {
     } catch (error) {
         // Silently fail if vMix is not available
     }
+}
+
+// Helper function to get input name by number from vMix XML
+function getInputNameByNumber(xmlData, inputNumber) {
+    // Match input with specific number and extract its key (name)
+    const regex = new RegExp(`<input[^>]*number="${inputNumber}"[^>]*key="([^"]*)"`, 'i');
+    const match = xmlData.match(regex);
+    return match ? match[1] : inputNumber; // Fall back to number if name not found
 }
 
 // Process vMix trigger nodes
