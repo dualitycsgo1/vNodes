@@ -361,6 +361,7 @@ async function executeSingleVmixCommand(action, eventName) {
         url += `&SelectedIndex=${encodeURIComponent(action.selectedIndex.toString().trim())}`;
     }
     
+    console.log(`  🌐 API Call: ${url}`);
     await axios.get(url);
     console.log(`  ↳ ${action.function} ${action.input ? `→ ${action.input}` : ''}`);
 }
